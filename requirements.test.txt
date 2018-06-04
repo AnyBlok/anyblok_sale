@@ -1,0 +1,9 @@
+sqlalchemy
+psycopg2-binary
+-e git+https://github.com/AnyBlok/anyblok_product.git#egg=anyblok_product
+-e .
+flake8
+nose
+coverage
+sphinx
+sphinxcontrib-httpdomain
