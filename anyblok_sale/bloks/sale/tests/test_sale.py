@@ -52,6 +52,22 @@ class TestSaleOrderModel(BlokTestCase):
             ['Missing data for required field.']
         )
 
+    def test_sale_order_state_transition_to_quotation_missing_lines(self):
+        so = self.registry.Sale.Order.create(
+                                channel="WEBSITE",
+                                code="SO-TEST-000001"
+                            )
+        self.assertEqual(so.state, 'draft')
+
+        with self.assertRaises(ValidationError) as ctx:
+            so.state_to('quotation')
+
+        self.assertTrue('lines' in ctx.exception.messages.keys())
+        self.assertEqual(
+            ctx.exception.messages.get('lines'),
+            ['Shorter than minimum length 1.']
+        )
+
     def test_sale_order_state_transition_to_done(self):
         so = self.registry.Sale.Order.create(
                                 channel="WEBSITE",
@@ -59,25 +75,41 @@ class TestSaleOrderModel(BlokTestCase):
                             )
 
         self.assertEqual(so.state, 'draft')
-        so.state = 'quotation'
-        self.registry.flush()  # flush to update state on db
+
+        product = self.registry.Product.Item.insert(code="TEST", name="Test")
+        self.registry.Sale.Order.Line.create(
+            order=so,
+            item=product,
+            quantity=1,
+            unit_price=100,
+            unit_tax=20,
+            properties=dict()
+        )
+
+        so.state_to('quotation')
         self.assertEqual(so.state, 'quotation')
-        so.state = 'order'
-        self.registry.flush()
+        so.state_to('order')
         self.assertEqual(so.state, 'order')
-        self.registry.flush()
 
     def test_sale_order_state_transition_to_cancelled(self):
         so = self.registry.Sale.Order.create(
                                 channel="WEBSITE",
                                 code="SO-TEST-000001"
                             )
+        product = self.registry.Product.Item.insert(code="TEST", name="Test")
+        self.registry.Sale.Order.Line.create(
+            order=so,
+            item=product,
+            quantity=1,
+            unit_price=100,
+            unit_tax=20,
+            properties=dict()
+        )
+
         self.assertEqual(so.state, 'draft')
-        so.state = 'quotation'
-        self.registry.flush()
+        so.state_to('quotation')
         self.assertEqual(so.state, 'quotation')
-        so.state = 'cancelled'
-        self.registry.flush()
+        so.state_to('cancelled')
         self.assertEqual(so.state, 'cancelled')
 
     def test_sale_order_transition_quotation_order_failed(self):
@@ -85,14 +117,21 @@ class TestSaleOrderModel(BlokTestCase):
                                 channel="WEBSITE",
                                 code="SO-TEST-000001"
                             )
-        so.state = 'quotation'
-        self.registry.flush()
-        so.state = 'order'
-        self.registry.flush()
+        product = self.registry.Product.Item.insert(code="TEST", name="Test")
+        self.registry.Sale.Order.Line.create(
+            order=so,
+            item=product,
+            quantity=1,
+            unit_price=100,
+            unit_tax=20,
+            properties=dict()
+        )
+
+        so.state_to('quotation')
+        so.state_to('order')
 
         with self.assertRaises(WorkFlowException) as ctx:
-            so.state = 'draft'
-            self.registry.flush()
+            so.state_to('draft')
 
         self.assertEqual(
             ctx.exception.args[0],
@@ -100,7 +139,7 @@ class TestSaleOrderModel(BlokTestCase):
 
 
 class TestSaleOrderLineModel(BlokTestCase):
-    """ Test Sale.Order.Line model"""
+    """Test Sale.Order.Line model"""
 
     def test_compute_sale_order_line_unit(self):
         so = self.registry.Sale.Order.create(
@@ -109,7 +148,7 @@ class TestSaleOrderLineModel(BlokTestCase):
                      )
 
         self.assertEqual(so.state, 'draft')
-        product = self.registry.Product.Item.insert(code="plop", name="plop")
+        product = self.registry.Product.Item.insert(code="TEST", name="test")
 
         line1 = self.registry.Sale.Order.Line.create(
                     order=so,
@@ -176,7 +215,6 @@ class TestSaleOrderLineModel(BlokTestCase):
                     )
 
         self.assertEqual(line5.unit_price_untaxed, D('83.33'))
-
         self.assertEqual(line5.unit_price_untaxed, line5.amount_untaxed)
         self.assertEqual(line5.unit_price, line5.amount_total)
 

@@ -15,10 +15,27 @@ from anyblok.relationship import Many2One
 
 from anyblok_postgres.column import Jsonb
 from anyblok_mixins.workflow.marshmallow import SchemaValidator
-from anyblok_marshmallow import ModelSchema
+from anyblok_marshmallow import fields, ModelSchema
+
+from marshmallow.validate import Length
 
 
 Mixin = Declarations.Mixin
+
+
+class OrderLineBaseSchema(ModelSchema):
+
+    class Meta:
+        model = "Model.Sale.Order.Line"
+
+
+class OrderBaseSchema(ModelSchema):
+    lines = fields.Nested(OrderLineBaseSchema,
+                          validate=[Length(min=1)],
+                          many=True)
+
+    class Meta:
+        model = "Model.Sale.Order"
 
 
 @Declarations.register(Declarations.Model)
@@ -30,25 +47,24 @@ class LineException(Exception):
     pass
 
 
-class OrderBaseSchema(ModelSchema):
-    class Meta:
-        model = "Model.Sale.Order"
-        required_fields = True
-
-
 @Declarations.register(Declarations.Model.Sale)
 class Order(Mixin.UuidColumn, Mixin.TrackModel, Mixin.WorkFlow):
     """Sale.Order model
     """
     SCHEMA = OrderBaseSchema
+
+    @classmethod
+    def get_schema_definition(cls, **kwargs):
+        return cls.SCHEMA(**kwargs)
+
     WORKFLOW = {
         'draft': {'default': True, 'allowed_to': ['quotation', 'cancelled']},
         'quotation': {
             'allowed_to': ['order', 'cancelled'],
-            'validators': SchemaValidator(SCHEMA(), get_instance=lambda x: x)
+            'validators': SchemaValidator(SCHEMA(required_fields=['yo']))
         },
         'order': {
-            'validators': SchemaValidator(SCHEMA(), get_instance=lambda x: x)
+            'validators': SchemaValidator(SCHEMA())
         },
         'cancelled': {},
     }
@@ -74,9 +90,10 @@ class Order(Mixin.UuidColumn, Mixin.TrackModel, Mixin.WorkFlow):
 
     @classmethod
     def create(cls, **kwargs):
-        if cls.SCHEMA:
-            sch = cls.SCHEMA(registry=cls.registry,
-                             required_fields=['code', 'channel'])
+        if cls.get_schema_definition:
+            sch = cls.get_schema_definition(registry=cls.registry,
+                                            exclude=['lines']
+                                            )
             data = sch.load(kwargs)
         else:
             data = kwargs
@@ -96,12 +113,6 @@ class Order(Mixin.UuidColumn, Mixin.TrackModel, Mixin.WorkFlow):
         self.amount_untaxed = amount_untaxed
         self.amount_tax = amount_tax
         self.amount_total = amount_total
-
-
-class SaleOrderLineSchema(ModelSchema):
-
-    class Meta:
-        model = "Model.Sale.Order.Line"
 
 
 @Declarations.register(Declarations.Model.Sale.Order)
