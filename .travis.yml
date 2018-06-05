@@ -1,0 +1,49 @@
+language: python
+sudo: true
+addons:
+    postgresql: "9.6"
+
+python:
+  - "3.3"
+  - "3.4"
+  - "3.5"
+  - "3.6"
+  - "3.6-dev" # 3.6 development branch
+  - "3.7-dev" # 3.7 development branch
+  - "nightly"
+
+matrix:
+  allow_failures:
+    - python: "3.3"
+    - python: "3.6-dev"
+    - python: "3.7-dev"
+    - python: "nightly"
+
+virtualenv:
+  system_site_packages: false
+
+services:
+  - postgresql
+
+install:
+  - pip install -U pip
+  - pip install wheel
+  - pip install coveralls
+  - pip install -r requirements.test.txt
+
+env:
+  global:
+    - ANYBLOK_DATABASE_NAME=travis_ci_test
+    - ANYBLOK_DATABASE_DRIVER=postgresql
+    - ANYBLOK_DATABASE_USER=postgres
+
+script:
+  - flake8 anyblok_sale
+  - psql -c 'create database travis_ci_test;' -U postgres
+  - nosetests anyblok_sale/bloks -v -s --with-coverage --cover-package=anyblok_sale
+  - psql -c 'drop database travis_ci_test;' -U postgres
+  - anyblok_createdb -c tests.cfg --test-blok-at-install
+  - psql -c 'drop database anyblok_sale_test;' -U postgres
+
+after_success:
+  coveralls
