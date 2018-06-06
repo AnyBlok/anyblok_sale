@@ -39,9 +39,9 @@ env:
 
 script:
   - flake8 anyblok_sale
-  - psql -c 'drop database anyblok_sale_test;' -U postgres
   - anyblok_createdb -c tests.cfg
   - anyblok_nose -c tests.cfg -- anyblok_sale/bloks
+  - psql -c 'drop database anyblok_sale_test;' -U postgres
 
 after_success:
   coveralls

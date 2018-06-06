@@ -135,6 +135,12 @@ class Order(Mixin.UuidColumn, Mixin.TrackModel, Mixin.WorkFlow):
 class Line(Mixin.UuidColumn, Mixin.TrackModel):
     """Sale.Order.Line Model
     """
+    SCHEMA = OrderLineBaseSchema
+
+    @classmethod
+    def get_schema_definition(cls, **kwargs):
+        return cls.SCHEMA(**kwargs)
+
     order = Many2One(label="Order",
                      model=Declarations.Model.Sale.Order,
                      nullable=False,
@@ -241,9 +247,45 @@ class Line(Mixin.UuidColumn, Mixin.TrackModel):
     def create(cls, order=None, item=None, **kwargs):
         data = kwargs.copy()
 
-        data['order'] = order
-        data['item'] = item
+        if order is None:
+            raise TypeError
+
+        if item is None:
+            raise TypeError
+
+        if cls.get_schema_definition:
+            sch = cls.get_schema_definition(
+                        registry=cls.registry,
+                        required_fields=["order", "item", "quantity"]
+            )
+            data['item'] = item.to_primary_keys()
+            data['order'] = order.to_primary_keys()
+
+            data = sch.load(data)
+
+            data['item'] = item
+            data['order'] = order
 
         line = cls.insert(**data)
         line.compute()
         return line
+
+    @classmethod
+    def before_update_orm_event(cls, mapper, connection, target):
+        if cls.get_schema_definition:
+            sch = cls.get_schema_definition(
+                        registry=cls.registry,
+                        required_fields=["order", "item", "quantity"]
+            )
+
+            sch.load(sch.dump(target))
+
+            if (target.properties and
+                cls.registry.System.Blok.is_installed('product_family') and
+                    target.item.template.family.custom_schemas):
+                props = target.item.template.family.custom_schemas.get(
+                            target.item.code.lower()).get('schema')
+                props_sch = props(context={"registry": cls.registry})
+                props_sch.load(target.properties)
+
+        target.compute()
