@@ -58,19 +58,33 @@ class Order(Mixin.UuidColumn, Mixin.TrackModel, Mixin.WorkFlow):
         return cls.SCHEMA(**kwargs)
 
     WORKFLOW = {
-        'draft': {'default': True, 'allowed_to': ['quotation', 'cancelled']},
+        'draft': {
+            'default': True,
+            'allowed_to': ['quotation', 'cancelled']
+        },
         'quotation': {
             'allowed_to': ['order', 'cancelled'],
-            'validators': SchemaValidator(SCHEMA(required_fields=['yo']))
+            'validators': SchemaValidator(SCHEMA(
+                exclude=['customer', 'customer_address', 'delivery_address']))
         },
         'order': {
-            'validators': SchemaValidator(SCHEMA())
+            'validators': SchemaValidator(SCHEMA(
+                exclude=['customer', 'customer_address', 'delivery_address']))
         },
         'cancelled': {},
     }
 
     code = String(label="Code", nullable=False)
     channel = String(label="Sale Channel", nullable=False)
+    delivery_method = String(label="Delivery Method")
+
+    customer = Many2One(label="Customer",
+                        model=Declarations.Model.Customer,
+                        one2many='sale_orders')
+    customer_address = Many2One(label="Customer Address",
+                                model=Declarations.Model.Address)
+    delivery_address = Many2One(label="Delivery Address",
+                                model=Declarations.Model.Address)
 
     amount_untaxed = Decimal(label="Amount Untaxed", default=D(0))
     amount_tax = Decimal(label="Tax amount", default=D(0))
@@ -91,9 +105,11 @@ class Order(Mixin.UuidColumn, Mixin.TrackModel, Mixin.WorkFlow):
     @classmethod
     def create(cls, **kwargs):
         if cls.get_schema_definition:
-            sch = cls.get_schema_definition(registry=cls.registry,
-                                            exclude=['lines']
-                                            )
+            sch = cls.get_schema_definition(
+                        registry=cls.registry,
+                        exclude=['lines', 'customer', 'customer_address',
+                                 'delivery_address']
+            )
             data = sch.load(kwargs)
         else:
             data = kwargs

@@ -105,7 +105,6 @@ class TestSaleOrderModel(BlokTestCase):
             unit_tax=20,
             properties=dict()
         )
-
         self.assertEqual(so.state, 'draft')
         so.state_to('quotation')
         self.assertEqual(so.state, 'quotation')

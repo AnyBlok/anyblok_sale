@@ -51,6 +51,7 @@ setup(
     entry_points={
         'bloks': [
             'sale=anyblok_sale.bloks.sale:SaleBlok',
+            'customer=anyblok_sale.bloks.customer:CustomerBlok',
         ],
     },
     include_package_data=True,
