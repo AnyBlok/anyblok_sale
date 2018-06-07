@@ -57,22 +57,25 @@ class Order(Mixin.UuidColumn, Mixin.TrackModel, Mixin.WorkFlow):
     def get_schema_definition(cls, **kwargs):
         return cls.SCHEMA(**kwargs)
 
-    WORKFLOW = {
-        'draft': {
-            'default': True,
-            'allowed_to': ['quotation', 'cancelled']
-        },
-        'quotation': {
-            'allowed_to': ['order', 'cancelled'],
-            'validators': SchemaValidator(SCHEMA(
-                exclude=['customer', 'customer_address', 'delivery_address']))
-        },
-        'order': {
-            'validators': SchemaValidator(SCHEMA(
-                exclude=['customer', 'customer_address', 'delivery_address']))
-        },
-        'cancelled': {},
-    }
+    @classmethod
+    def get_workflow_definition(cls):
+
+        return {
+            'draft': {
+                'default': True,
+                'allowed_to': ['quotation', 'cancelled']
+            },
+            'quotation': {
+                'allowed_to': ['order', 'cancelled'],
+                'validators': SchemaValidator(cls.get_schema_definition(
+                    exclude=['customer', 'customer_address', 'delivery_address']))
+            },
+            'order': {
+                'validators': SchemaValidator(cls.get_schema_definition(
+                    exclude=['customer', 'customer_address', 'delivery_address']))
+            },
+            'cancelled': {},
+        }
 
     code = String(label="Code", nullable=False)
     channel = String(label="Sale Channel", nullable=False)
