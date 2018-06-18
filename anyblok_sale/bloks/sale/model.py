@@ -68,11 +68,17 @@ class Order(Mixin.UuidColumn, Mixin.TrackModel, Mixin.WorkFlow):
             'quotation': {
                 'allowed_to': ['order', 'cancelled'],
                 'validators': SchemaValidator(cls.get_schema_definition(
-                    exclude=['customer', 'customer_address', 'delivery_address']))
+                    exclude=[
+                        'customer',
+                        'customer_address',
+                        'delivery_address']))
             },
             'order': {
                 'validators': SchemaValidator(cls.get_schema_definition(
-                    exclude=['customer', 'customer_address', 'delivery_address']))
+                    exclude=[
+                        'customer',
+                        'customer_address',
+                        'delivery_address']))
             },
             'cancelled': {},
         }

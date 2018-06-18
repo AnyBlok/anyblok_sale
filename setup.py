@@ -52,6 +52,7 @@ setup(
         'bloks': [
             'sale=anyblok_sale.bloks.sale:SaleBlok',
             'customer=anyblok_sale.bloks.customer:CustomerBlok',
+            'pricelist=anyblok_sale.bloks.price_list:PriceListBlok',
         ],
     },
     include_package_data=True,

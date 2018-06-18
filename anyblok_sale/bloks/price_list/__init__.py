@@ -12,15 +12,13 @@ from logging import getLogger
 logger = getLogger(__name__)
 
 
-class SaleBlok(Blok):
-    """Sale blok
+class PriceListBlok(Blok):
+    """PriceList blok
     """
     version = "0.1.0"
     author = "Franck BRET"
 
-    required = ['anyblok-core', 'anyblok-workflow', 'anyblok-mixins',
-                'customer', 'pricelist', 'attachment', 'address',
-                'product_item']
+    required = ['anyblok-core', 'anyblok-mixins', 'product_item']
 
     @classmethod
     def import_declaration_module(cls):
