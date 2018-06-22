@@ -33,6 +33,7 @@ requirements = [
     'anyblok_attachment',
     'anyblok_address',
     'anyblok_product',
+    'prices',
 ]
 
 test_requirements = [
