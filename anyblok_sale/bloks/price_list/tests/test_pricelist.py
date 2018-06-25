@@ -122,3 +122,19 @@ class TestPriceListModel(BlokTestCase):
                     )
 
         self.assertTrue(str(ctx.exception).startswith('Tax must be a value'))
+
+    def test_price_list_item_compute_tax_negative(self):
+        pricelist = self.registry.PriceList.create(code="DEFAULT",
+                                                   name="Default")
+        product = self.registry.Product.Item.insert(code="TEST",
+                                                    name="Test")
+
+        with self.assertRaises(Exception) as ctx:
+            self.registry.PriceListItem.create(
+                    price_list=pricelist,
+                    item=product,
+                    unit_tax=-0.2,
+                    unit_price=10
+                    )
+
+        self.assertTrue(str(ctx.exception).startswith('Tax must be a value'))
