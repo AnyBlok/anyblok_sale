@@ -47,16 +47,16 @@ def compute_price(net=0, gross=0, tax=0, currency='EUR', keep_gross=True):
 class PriceListItemSchema(ModelSchema):
 
     class Meta:
-        model = "Model.PriceListItem"
+        model = "Model.Sale.PriceList.Item"
 
 
 class PriceListSchema(ModelSchema):
 
     class Meta:
-        model = "Model.PriceList"
+        model = "Model.Sale.PriceList"
 
 
-@Declarations.register(Declarations.Model)
+@Declarations.register(Declarations.Model.Sale)
 class PriceList(Mixin.UuidColumn, Mixin.TrackModel):
 
     code = String(label="Code", nullable=False)
@@ -76,11 +76,11 @@ class PriceList(Mixin.UuidColumn, Mixin.TrackModel):
         return cls.insert(**data)
 
 
-@Declarations.register(Declarations.Model)
-class PriceListItem(Mixin.UuidColumn, Mixin.TrackModel):
+@Declarations.register(Declarations.Model.Sale.PriceList)
+class Item(Mixin.UuidColumn, Mixin.TrackModel):
 
     price_list = Many2One(label="Pricelist",
-                          model=Declarations.Model.PriceList,
+                          model=Declarations.Model.Sale.PriceList,
                           nullable=False,
                           one2many="price_list_items")
     item = Many2One(label="Product Item",

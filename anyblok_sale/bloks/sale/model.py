@@ -38,11 +38,6 @@ class OrderBaseSchema(ModelSchema):
         model = "Model.Sale.Order"
 
 
-@Declarations.register(Declarations.Model)
-class Sale:
-    """Namespace for Sale related models"""
-
-
 class LineException(Exception):
     pass
 
@@ -88,7 +83,7 @@ class Order(Mixin.UuidColumn, Mixin.TrackModel, Mixin.WorkFlow):
     delivery_method = String(label="Delivery Method")
 
     customer = Many2One(label="Customer",
-                        model=Declarations.Model.Customer,
+                        model=Declarations.Model.Sale.Customer,
                         one2many='sale_orders')
     customer_address = Many2One(label="Customer Address",
                                 model=Declarations.Model.Address)

@@ -19,10 +19,10 @@ Mixin = Declarations.Mixin
 class CustomerSchema(ModelSchema):
 
     class Meta:
-        model = "Model.Customer"
+        model = "Model.Sale.Customer"
 
 
-@Declarations.register(Declarations.Model)
+@Declarations.register(Declarations.Model.Sale)
 class Customer(Mixin.UuidColumn, Mixin.TrackModel):
 
     email = Email(label="Email", unique=True, nullable=False)

@@ -19,7 +19,7 @@ class SaleBlok(Blok):
     author = "Franck BRET"
 
     required = ['anyblok-core', 'anyblok-workflow', 'anyblok-mixins',
-                'customer', 'pricelist', 'attachment', 'address',
+                'sale_base', 'customer', 'pricelist', 'attachment', 'address',
                 'product_item']
 
     @classmethod

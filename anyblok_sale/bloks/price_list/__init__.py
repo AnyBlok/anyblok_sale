@@ -18,7 +18,7 @@ class PriceListBlok(Blok):
     version = "0.1.0"
     author = "Franck BRET"
 
-    required = ['anyblok-core', 'anyblok-mixins', 'product_item']
+    required = ['anyblok-core', 'anyblok-mixins', 'sale_base', 'product_item']
 
     @classmethod
     def import_declaration_module(cls):
