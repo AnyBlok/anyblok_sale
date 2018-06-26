@@ -10,38 +10,16 @@
 """
 from decimal import Decimal as D
 
-from prices import Money, TaxedMoney, flat_tax
-
 from anyblok_marshmallow import ModelSchema
 
 from anyblok import Declarations
 from anyblok.column import String, Decimal
 from anyblok.relationship import Many2One
 
+from anyblok_sale.bloks.sale_base.base import compute_tax, compute_price
+
 
 Mixin = Declarations.Mixin
-
-
-def compute_tax(tax=0):
-    if tax != 0:
-        if tax > 1 and tax <= 100:
-            tax = tax / 100
-        elif tax > 0 and tax <= 1:
-            tax = tax
-        else:
-            raise Exception("Tax must be a value between 0 and 1")
-    return tax
-
-
-def compute_price(net=0, gross=0, tax=0, currency='EUR', keep_gross=True):
-    if net != gross:
-        if keep_gross:
-            net = gross
-        else:
-            gross = net
-    tax = compute_tax(tax)
-    return flat_tax(TaxedMoney(Money(net, currency), Money(gross, currency)),
-                    D(tax), keep_gross=keep_gross)
 
 
 class PriceListItemSchema(ModelSchema):
