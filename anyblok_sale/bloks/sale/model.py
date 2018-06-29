@@ -8,6 +8,7 @@
 # -*- coding: utf-8 -*-
 
 from decimal import Decimal as D
+from marshmallow.validate import Length
 
 from anyblok import Declarations
 from anyblok.column import String, Decimal, Integer
@@ -16,8 +17,6 @@ from anyblok.relationship import Many2One
 from anyblok_postgres.column import Jsonb
 from anyblok_mixins.workflow.marshmallow import SchemaValidator
 from anyblok_marshmallow import fields, ModelSchema
-
-from marshmallow.validate import Length
 
 
 Mixin = Declarations.Mixin
@@ -65,6 +64,7 @@ class Order(Mixin.UuidColumn, Mixin.TrackModel, Mixin.WorkFlow):
                 'validators': SchemaValidator(cls.get_schema_definition(
                     exclude=[
                         'customer',
+                        'price_list',
                         'customer_address',
                         'delivery_address']))
             },
@@ -72,6 +72,7 @@ class Order(Mixin.UuidColumn, Mixin.TrackModel, Mixin.WorkFlow):
                 'validators': SchemaValidator(cls.get_schema_definition(
                     exclude=[
                         'customer',
+                        'price_list',
                         'customer_address',
                         'delivery_address']))
             },
@@ -80,6 +81,8 @@ class Order(Mixin.UuidColumn, Mixin.TrackModel, Mixin.WorkFlow):
 
     code = String(label="Code", nullable=False)
     channel = String(label="Sale Channel", nullable=False)
+    price_list = Many2One(label="Price list",
+                          model=Declarations.Model.Sale.PriceList)
     delivery_method = String(label="Delivery Method")
 
     customer = Many2One(label="Customer",
@@ -107,16 +110,19 @@ class Order(Mixin.UuidColumn, Mixin.TrackModel, Mixin.WorkFlow):
                     self=self)
 
     @classmethod
-    def create(cls, **kwargs):
+    def create(cls, price_list=None, **kwargs):
+        data = kwargs.copy()
         if cls.get_schema_definition:
             sch = cls.get_schema_definition(
                         registry=cls.registry,
                         exclude=['lines', 'customer', 'customer_address',
                                  'delivery_address']
             )
-            data = sch.load(kwargs)
-        else:
-            data = kwargs
+            if price_list:
+                data["price_list"] = price_list.to_primary_keys()
+            data = sch.load(data)
+            data['price_list'] = price_list
+
         return cls.insert(**data)
 
     def compute(self):
@@ -216,10 +222,11 @@ class Line(Mixin.UuidColumn, Mixin.TrackModel):
         """
         self.check_unit_price()
 
-        unit_price_untaxed = D(self.unit_price_untaxed).quantize(D('1.0000'))
-        unit_price = D(self.unit_price).quantize(D('1.0000'))
+        if not self.order.price_list and self.unit_tax != D(0):
+            unit_price_untaxed = D(self.unit_price_untaxed).quantize(
+                D('1.0000'))
+            unit_price = D(self.unit_price).quantize(D('1.0000'))
 
-        if self.unit_tax != D(0):
             tax = D(D(self.unit_tax / 100).quantize(D('1.0000'))) + 1
 
             if self.unit_price != D(0) and self.unit_price_untaxed == D(0):
@@ -257,6 +264,15 @@ class Line(Mixin.UuidColumn, Mixin.TrackModel):
         if item is None:
             raise TypeError
 
+        if order.price_list:
+            price_list_item = cls.registry.Sale.PriceList.Item.query(
+                    ).filter_by(price_list=order.price_list).filter_by(
+                            item=item).one_or_none()
+            if price_list_item:
+                data['unit_price'] = price_list_item.unit_price
+                data['unit_price_untaxed'] = price_list_item.unit_price_untaxed
+                data['unit_tax'] = price_list_item.unit_tax
+
         if cls.get_schema_definition:
             sch = cls.get_schema_definition(
                         registry=cls.registry,
@@ -276,6 +292,15 @@ class Line(Mixin.UuidColumn, Mixin.TrackModel):
 
     @classmethod
     def before_update_orm_event(cls, mapper, connection, target):
+        if target.item and target.order.price_list:
+            price_list_item = cls.registry.Sale.PriceList.Item.query(
+                    ).filter_by(price_list=target.order.price_list).filter_by(
+                            item=target.item).one_or_none()
+            if price_list_item:
+                target.unit_price = price_list_item.unit_price
+                target.unit_price_untaxed = price_list_item.unit_price_untaxed
+                target.unit_tax = price_list_item.unit_tax
+
         if cls.get_schema_definition:
             sch = cls.get_schema_definition(
                         registry=cls.registry,
@@ -291,5 +316,4 @@ class Line(Mixin.UuidColumn, Mixin.TrackModel):
                             target.item.code.lower()).get('schema')
                 props_sch = props(context={"registry": cls.registry})
                 props_sch.load(target.properties)
-
         target.compute()

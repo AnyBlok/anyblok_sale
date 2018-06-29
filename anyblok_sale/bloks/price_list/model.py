@@ -44,7 +44,7 @@ class PriceList(Mixin.UuidColumn, Mixin.TrackModel):
         return "{self.code} {self.name}".format(self=self)
 
     def __repr__(self):
-        return ("<PriceList(id={self.uuid}, code={self.code}, "
+        return ("<PriceList(uuid={self.uuid}, code={self.code}, "
                 "name={self.name}>").format(self=self)
 
     @classmethod
@@ -74,7 +74,7 @@ class Item(Mixin.UuidColumn, Mixin.TrackModel):
         return "{self.item.code} {self.unit_price_untaxed}".format(self=self)
 
     def __repr__(self):
-        return ("<PriceList(id={self.uuid}, item.code={self.item.code}, "
+        return ("<PriceListItem(uuid={self.uuid}, item.code={self.item.code}, "
                 "unit_price_untaxed={self.unit_price_untaxed}>").format(
                     self=self)
 

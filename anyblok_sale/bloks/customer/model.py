@@ -34,7 +34,7 @@ class Customer(Mixin.UuidColumn, Mixin.TrackModel):
         return "{self.first_name} {self.last_name}".format(self=self)
 
     def __repr__(self):
-        return ("<Customer(id={self.uuid}, email={self.email}, "
+        return ("<Customer(uuid={self.uuid}, email={self.email}, "
                 "first_name={self.first_name},"
                 " last_name={self.last_name})>").format(self=self)
 
