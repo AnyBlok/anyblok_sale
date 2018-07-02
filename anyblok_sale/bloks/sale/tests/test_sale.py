@@ -82,8 +82,7 @@ class TestSaleOrderModel(BlokTestCase):
             item=product,
             quantity=1,
             unit_price=100,
-            unit_tax=20,
-            properties=dict()
+            unit_tax=20
         )
 
         so.state_to('quotation')
@@ -103,7 +102,6 @@ class TestSaleOrderModel(BlokTestCase):
             quantity=1,
             unit_price=100,
             unit_tax=20,
-            properties=dict()
         )
         self.assertEqual(so.state, 'draft')
         so.state_to('quotation')
@@ -122,8 +120,7 @@ class TestSaleOrderModel(BlokTestCase):
             item=product,
             quantity=1,
             unit_price=100,
-            unit_tax=20,
-            properties=dict()
+            unit_tax=20
         )
 
         so.state_to('quotation')
@@ -154,8 +151,7 @@ class TestSaleOrderLineModel(BlokTestCase):
                     item=product,
                     quantity=1,
                     unit_price=100,
-                    unit_tax=20,
-                    properties=dict()
+                    unit_tax=20
                     )
 
         line2 = self.registry.Sale.Order.Line.create(
@@ -163,8 +159,7 @@ class TestSaleOrderLineModel(BlokTestCase):
                     item=product,
                     quantity=1,
                     unit_price_untaxed=83.33,
-                    unit_tax=20,
-                    properties=dict()
+                    unit_tax=20
                     )
 
         self.assertEqual(line1.unit_price_untaxed, line2.unit_price_untaxed)
@@ -181,8 +176,7 @@ class TestSaleOrderLineModel(BlokTestCase):
                     item=product,
                     quantity=1,
                     unit_price=23.14,
-                    unit_tax=2.1,
-                    properties=dict()
+                    unit_tax=2.1
                     )
 
         line4 = self.registry.Sale.Order.Line.create(
@@ -190,8 +184,7 @@ class TestSaleOrderLineModel(BlokTestCase):
                     item=product,
                     quantity=1,
                     unit_price_untaxed=22.66,
-                    unit_tax=2.1,
-                    properties=dict()
+                    unit_tax=2.1
                     )
 
         self.assertEqual(line3.unit_price_untaxed, line4.unit_price_untaxed)
@@ -209,8 +202,7 @@ class TestSaleOrderLineModel(BlokTestCase):
                     quantity=1,
                     unit_price=100,
                     unit_price_untaxed=83.33,
-                    unit_tax=20,
-                    properties=dict()
+                    unit_tax=20
                     )
 
         self.assertEqual(line5.unit_price_untaxed, D('83.33'))
@@ -252,17 +244,16 @@ class TestSaleOrderLineModel(BlokTestCase):
         line1 = self.registry.Sale.Order.Line.create(
                     order=so,
                     item=product,
-                    quantity=1,
-                    properties=dict()
+                    quantity=1
                     )
 
         self.assertEqual(line1.unit_price, D('10'))
         self.assertEqual(line1.unit_price_untaxed, D('8.33'))
         self.assertEqual(line1.unit_tax, D('0.2'))
 
-        self.assertEqual(line1.unit_price, D('10'))
-        self.assertEqual(line1.unit_price_untaxed, D('8.33'))
-        self.assertEqual(line1.unit_tax, D('0.2'))
+        self.assertEqual(so.amount_untaxed, D('0'))
+        self.assertEqual(so.amount_tax, D('0'))
+        self.assertEqual(so.amount_total, D('0'))
 
         so.compute()
         self.assertEqual(so.amount_untaxed, D('8.33'))
