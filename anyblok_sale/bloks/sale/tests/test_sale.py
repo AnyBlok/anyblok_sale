@@ -167,9 +167,11 @@ class TestSaleOrderLineModel(BlokTestCase):
 
         self.assertEqual(line1.unit_price_untaxed, line1.amount_untaxed)
         self.assertEqual(line1.unit_price, line1.amount_total)
+        self.assertEqual(line1.unit_tax, D('0.2'))
 
         self.assertEqual(line2.unit_price_untaxed, line2.amount_untaxed)
         self.assertEqual(line2.unit_price, line2.amount_total)
+        self.assertEqual(line2.unit_tax, D('0.2'))
 
         line3 = self.registry.Sale.Order.Line.create(
                     order=so,
@@ -192,9 +194,11 @@ class TestSaleOrderLineModel(BlokTestCase):
 
         self.assertEqual(line3.unit_price_untaxed, line3.amount_untaxed)
         self.assertEqual(line3.unit_price, line3.amount_total)
+        self.assertEqual(line3.unit_tax, D('0.021'))
 
         self.assertEqual(line4.unit_price_untaxed, line4.amount_untaxed)
         self.assertEqual(line4.unit_price, line4.amount_total)
+        self.assertEqual(line4.unit_tax, D('0.021'))
 
         line5 = self.registry.Sale.Order.Line.create(
                     order=so,
@@ -208,6 +212,7 @@ class TestSaleOrderLineModel(BlokTestCase):
         self.assertEqual(line5.unit_price_untaxed, D('83.33'))
         self.assertEqual(line5.unit_price_untaxed, line5.amount_untaxed)
         self.assertEqual(line5.unit_price, line5.amount_total)
+        self.assertEqual(line5.unit_tax, D('0.2'))
 
         self.assertEqual(so.amount_untaxed, D('0'))
         self.assertEqual(so.amount_tax, D('0'))
@@ -251,6 +256,10 @@ class TestSaleOrderLineModel(BlokTestCase):
         self.assertEqual(line1.unit_price_untaxed, D('8.33'))
         self.assertEqual(line1.unit_tax, D('0.2'))
 
+        self.assertEqual(line1.amount_untaxed, D('8.33'))
+        self.assertEqual(line1.amount_tax, D('1.67'))
+        self.assertEqual(line1.amount_total, D('10'))
+
         self.assertEqual(so.amount_untaxed, D('0'))
         self.assertEqual(so.amount_tax, D('0'))
         self.assertEqual(so.amount_total, D('0'))
@@ -259,3 +268,50 @@ class TestSaleOrderLineModel(BlokTestCase):
         self.assertEqual(so.amount_untaxed, D('8.33'))
         self.assertEqual(so.amount_tax, D('1.67'))
         self.assertEqual(so.amount_total, D('10'))
+
+    def test_compute_sale_order_line_total_quantity(self):
+
+        pricelist = self.registry.Sale.PriceList.create(code="DEFAULT",
+                                                        name="Default")
+        product = self.registry.Product.Item.insert(code="TEST",
+                                                    name="Test")
+
+        pli = self.registry.Sale.PriceList.Item.create(
+                    price_list=pricelist,
+                    item=product,
+                    unit_tax=20,
+                    unit_price=10
+                    )
+        self.assertEqual(pli.unit_price, D('10'))
+        self.assertEqual(pli.unit_price_untaxed, D('8.33'))
+        self.assertEqual(pli.unit_tax, D('0.2'))
+
+        so = self.registry.Sale.Order.create(
+                     channel="WEBSITE",
+                     price_list=pricelist,
+                     code="SO-TEST-000001"
+                     )
+        self.assertEqual(so.price_list, pricelist)
+
+        line1 = self.registry.Sale.Order.Line.create(
+                    order=so,
+                    item=product,
+                    quantity=2
+                    )
+
+        self.assertEqual(line1.unit_price, D('10'))
+        self.assertEqual(line1.unit_price_untaxed, D('8.33'))
+        self.assertEqual(line1.unit_tax, D('0.2'))
+
+        self.assertEqual(line1.amount_untaxed, D('16.66'))
+        self.assertEqual(line1.amount_tax, D('3.34'))
+        self.assertEqual(line1.amount_total, D('20'))
+
+        self.assertEqual(so.amount_untaxed, D('0'))
+        self.assertEqual(so.amount_tax, D('0'))
+        self.assertEqual(so.amount_total, D('0'))
+
+        so.compute()
+        self.assertEqual(so.amount_untaxed, D('16.66'))
+        self.assertEqual(so.amount_tax, D('3.34'))
+        self.assertEqual(so.amount_total, D('20'))

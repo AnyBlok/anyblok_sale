@@ -18,6 +18,8 @@ from anyblok_postgres.column import Jsonb
 from anyblok_mixins.workflow.marshmallow import SchemaValidator
 from anyblok_marshmallow import fields, ModelSchema
 
+from anyblok_sale.bloks.sale_base.base import compute_tax, compute_price
+
 
 Mixin = Declarations.Mixin
 
@@ -216,36 +218,39 @@ class Line(Mixin.UuidColumn, Mixin.TrackModel):
 
         TODO: maybe add configuration options for computation behaviours, for
         example computation based on unit_price or unit_price_untaxed
-
-        TODO: Maybe use 'Prices' module for decimal conversion and currency
-        management
         """
         self.check_unit_price()
 
         if not self.order.price_list and self.unit_tax != D(0):
-            unit_price_untaxed = D(self.unit_price_untaxed).quantize(
-                D('1.0000'))
-            unit_price = D(self.unit_price).quantize(D('1.0000'))
-
-            tax = D(D(self.unit_tax / 100).quantize(D('1.0000'))) + 1
-
             if self.unit_price != D(0) and self.unit_price_untaxed == D(0):
                 # compute unit_price_untaxed based on unit_price
-                self.unit_price_untaxed = D(unit_price / tax).quantize(
-                        D('1.00'))
-                self.unit_price = unit_price
+                price = compute_price(net=self.unit_price,
+                                      gross=self.unit_price,
+                                      tax=compute_tax(self.unit_tax),
+                                      keep_gross=True)
             elif self.unit_price_untaxed != D(0) and self.unit_price == D(0):
                 # compute unit_price based on unit_price_untaxed
-                self.unit_price = D(unit_price_untaxed * tax).quantize(
-                        D('1.00'))
-                self.unit_price_untaxed = unit_price_untaxed
+                price = compute_price(net=self.unit_price_untaxed,
+                                      gross=self.unit_price_untaxed,
+                                      tax=compute_tax(self.unit_tax),
+                                      keep_gross=False)
             elif self.unit_price_untaxed != D(0) and self.unit_price != D(0):
                 # compute unit_price_untaxed based on unit_price
-                self.unit_price_untaxed = D(unit_price / tax).quantize(
-                        D('1.00'))
-                self.unit_price = unit_price
+                price = compute_price(net=self.unit_price,
+                                      gross=self.unit_price,
+                                      tax=compute_tax(self.unit_tax),
+                                      keep_gross=True)
             else:
                 pass
+
+            if price:
+                self.unit_price_untaxed = price.net.amount
+                self.unit_price = price.gross.amount
+                self.unit_tax = compute_tax(self.unit_tax)
+            else:
+                raise LineException(
+                    """Can not find a strategy to compute price"""
+                    )
 
         # compute total
         self.amount_total = D(self.unit_price * self.quantity).quantize(
