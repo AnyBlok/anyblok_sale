@@ -30,8 +30,11 @@ def compute_price(net=0, gross=0, tax=0, currency='EUR', keep_gross=True):
         else:
             gross = net
     tax = compute_tax(tax)
-    return flat_tax(TaxedMoney(Money(net, currency), Money(gross, currency)),
-                    D(tax), keep_gross=keep_gross)
+    return flat_tax(TaxedMoney(
+                        Money(net, currency).quantize(),
+                        Money(gross, currency).quantize()),
+                    D(tax),
+                    keep_gross=keep_gross)
 
 
 @Declarations.register(Declarations.Model)

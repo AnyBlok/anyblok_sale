@@ -270,6 +270,34 @@ class TestSaleOrderLineModel(BlokTestCase):
         self.assertEqual(so.amount_total, D('10'))
 
     def test_compute_sale_order_line_total_quantity(self):
+        product = self.registry.Product.Item.insert(code="TEST",
+                                                    name="Test")
+        so = self.registry.Sale.Order.create(
+                     channel="WEBSITE",
+                     code="SO-TEST-000001"
+                     )
+        line = self.registry.Sale.Order.Line.create(
+                    order=so,
+                    item=product,
+                    quantity=2,
+                    unit_price_untaxed=83.33,
+                    unit_tax=20
+                    )
+
+        self.assertEqual(line.unit_price, D('100'))
+        self.assertEqual(line.unit_price_untaxed, D('83.33'))
+        self.assertEqual(line.unit_tax, D('0.2'))
+
+        self.assertEqual(line.amount_untaxed, D('166.66'))
+        self.assertEqual(line.amount_tax, D('33.34'))
+        self.assertEqual(line.amount_total, D('200'))
+
+        so.compute()
+        self.assertEqual(so.amount_untaxed, D('166.66'))
+        self.assertEqual(so.amount_tax, D('33.34'))
+        self.assertEqual(so.amount_total, D('200'))
+
+    def test_compute_sale_order_line_total_quantity_with_pricelist(self):
 
         pricelist = self.registry.Sale.PriceList.create(code="DEFAULT",
                                                         name="Default")
@@ -289,23 +317,23 @@ class TestSaleOrderLineModel(BlokTestCase):
         so = self.registry.Sale.Order.create(
                      channel="WEBSITE",
                      price_list=pricelist,
-                     code="SO-TEST-000001"
+                     code="SO-TEST-000002"
                      )
         self.assertEqual(so.price_list, pricelist)
 
-        line1 = self.registry.Sale.Order.Line.create(
+        line = self.registry.Sale.Order.Line.create(
                     order=so,
                     item=product,
                     quantity=2
                     )
 
-        self.assertEqual(line1.unit_price, D('10'))
-        self.assertEqual(line1.unit_price_untaxed, D('8.33'))
-        self.assertEqual(line1.unit_tax, D('0.2'))
+        self.assertEqual(line.unit_price, D('10'))
+        self.assertEqual(line.unit_price_untaxed, D('8.33'))
+        self.assertEqual(line.unit_tax, D('0.2'))
 
-        self.assertEqual(line1.amount_untaxed, D('16.66'))
-        self.assertEqual(line1.amount_tax, D('3.34'))
-        self.assertEqual(line1.amount_total, D('20'))
+        self.assertEqual(line.amount_untaxed, D('16.66'))
+        self.assertEqual(line.amount_tax, D('3.34'))
+        self.assertEqual(line.amount_total, D('20'))
 
         self.assertEqual(so.amount_untaxed, D('0'))
         self.assertEqual(so.amount_tax, D('0'))

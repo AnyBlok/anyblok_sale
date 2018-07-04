@@ -219,9 +219,9 @@ class Line(Mixin.UuidColumn, Mixin.TrackModel):
         TODO: maybe add configuration options for computation behaviours, for
         example computation based on unit_price or unit_price_untaxed
         """
-        self.check_unit_price()
 
-        if not self.order.price_list and self.unit_tax != D(0):
+        if not self.order.price_list:
+            self.check_unit_price()
             if self.unit_price != D(0) and self.unit_price_untaxed == D(0):
                 # compute unit_price_untaxed based on unit_price
                 price = compute_price(net=self.unit_price,
@@ -241,22 +241,27 @@ class Line(Mixin.UuidColumn, Mixin.TrackModel):
                                       tax=compute_tax(self.unit_tax),
                                       keep_gross=True)
             else:
-                pass
-
-            if price:
-                self.unit_price_untaxed = price.net.amount
-                self.unit_price = price.gross.amount
-                self.unit_tax = compute_tax(self.unit_tax)
-            else:
                 raise LineException(
                     """Can not find a strategy to compute price"""
                     )
 
-        # compute total
-        self.amount_total = D(self.unit_price * self.quantity).quantize(
-                D('1.00'))
+            self.unit_price_untaxed = price.net.amount
+            self.unit_price = price.gross.amount
+            self.unit_tax = compute_tax(self.unit_tax)
+        else:
+            # compute unit price based on price list
+            price_list_item = self.registry.Sale.PriceList.Item.query(
+                    ).filter_by(price_list=self.order.price_list).filter_by(
+                            item=self.item).one_or_none()
+            if price_list_item:
+                self.unit_price = price_list_item.unit_price
+                self.unit_price_untaxed = price_list_item.unit_price_untaxed
+                self.unit_tax = price_list_item.unit_tax
+
+        # compute total amount
+        self.amount_total = D(self.unit_price * self.quantity)
         self.amount_untaxed = D(
-                self.unit_price_untaxed * self.quantity).quantize(D('1.00'))
+                self.unit_price_untaxed * self.quantity)
         self.amount_tax = self.amount_total - self.amount_untaxed
 
     @classmethod
@@ -268,15 +273,6 @@ class Line(Mixin.UuidColumn, Mixin.TrackModel):
 
         if item is None:
             raise TypeError
-
-        if order.price_list:
-            price_list_item = cls.registry.Sale.PriceList.Item.query(
-                    ).filter_by(price_list=order.price_list).filter_by(
-                            item=item).one_or_none()
-            if price_list_item:
-                data['unit_price'] = price_list_item.unit_price
-                data['unit_price_untaxed'] = price_list_item.unit_price_untaxed
-                data['unit_tax'] = price_list_item.unit_tax
 
         if cls.get_schema_definition:
             sch = cls.get_schema_definition(
@@ -297,14 +293,6 @@ class Line(Mixin.UuidColumn, Mixin.TrackModel):
 
     @classmethod
     def before_update_orm_event(cls, mapper, connection, target):
-        if target.item and target.order.price_list:
-            price_list_item = cls.registry.Sale.PriceList.Item.query(
-                    ).filter_by(price_list=target.order.price_list).filter_by(
-                            item=target.item).one_or_none()
-            if price_list_item:
-                target.unit_price = price_list_item.unit_price
-                target.unit_price_untaxed = price_list_item.unit_price_untaxed
-                target.unit_tax = price_list_item.unit_tax
 
         if cls.get_schema_definition:
             sch = cls.get_schema_definition(
