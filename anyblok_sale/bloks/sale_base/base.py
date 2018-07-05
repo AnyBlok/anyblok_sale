@@ -7,7 +7,8 @@
 # obtain one at http://mozilla.org/MPL/2.0/.
 # -*- coding: utf-8 -*-
 from decimal import Decimal as D
-from prices import Money, TaxedMoney, flat_tax
+from prices import (
+        Money, TaxedMoney, flat_tax, fixed_discount, percentage_discount)
 
 from anyblok import Declarations
 
@@ -35,6 +36,24 @@ def compute_price(net=0, gross=0, tax=0, currency='EUR', keep_gross=True):
                         Money(gross, currency).quantize()),
                     D(tax),
                     keep_gross=keep_gross)
+
+
+def compute_discount(price=None, discount_amount=0, discount_percent=0):
+    if price is None:
+        return None
+    if discount_amount != 0:
+        if discount_amount < 0:
+            raise Exception("Discount amount must be a positive value")
+        return fixed_discount(price,
+                              discount=Money(discount_amount,
+                                             currency=price.currency)
+                              ).quantize()
+    if discount_percent != 0:
+        if discount_percent < 0 or discount_percent > 100:
+            raise Exception(
+                    "Discount percent must be a value between 0 and 100")
+        return percentage_discount(price,
+                                   percentage=discount_percent).quantize()
 
 
 @Declarations.register(Declarations.Model)
