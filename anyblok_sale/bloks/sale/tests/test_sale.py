@@ -343,3 +343,127 @@ class TestSaleOrderLineModel(BlokTestCase):
         self.assertEqual(so.amount_untaxed, D('16.66'))
         self.assertEqual(so.amount_tax, D('3.34'))
         self.assertEqual(so.amount_total, D('20'))
+
+    def test_compute_sale_order_line_discount_amount(self):
+        so = self.registry.Sale.Order.create(
+                     channel="WEBSITE",
+                     code="SO-TEST-000001"
+                     )
+
+        self.assertEqual(so.state, 'draft')
+        product = self.registry.Product.Item.insert(code="TEST", name="test")
+
+        line = self.registry.Sale.Order.Line.create(
+                    order=so,
+                    item=product,
+                    quantity=1,
+                    unit_price=100,
+                    unit_tax=20,
+                    amount_discount=10,
+                    )
+
+        self.assertEqual(line.unit_price, D('100'))
+        self.assertEqual(line.unit_price_untaxed, D('83.33'))
+        self.assertEqual(line.unit_tax, D('0.2'))
+
+        self.assertEqual(line.amount_untaxed, D('75.00'))
+        self.assertEqual(line.amount_tax, D('15.00'))
+        self.assertEqual(line.amount_total, D('90'))
+
+        self.assertEqual(line.amount_discount_percentage_untaxed, D('0.00'))
+        self.assertEqual(line.amount_discount_percentage, D('0.00'))
+        self.assertEqual(line.amount_discount_untaxed, D('0.00'))
+        self.assertEqual(line.amount_discount, D('10.00'))
+
+    def test_compute_sale_order_line_discount_percent(self):
+        so = self.registry.Sale.Order.create(
+                     channel="WEBSITE",
+                     code="SO-TEST-000001"
+                     )
+
+        self.assertEqual(so.state, 'draft')
+        product = self.registry.Product.Item.insert(code="TEST", name="test")
+
+        line = self.registry.Sale.Order.Line.create(
+                    order=so,
+                    item=product,
+                    quantity=1,
+                    unit_price=100,
+                    unit_tax=20,
+                    amount_discount_percentage=0.1,
+                    )
+
+        self.assertEqual(line.unit_price, D('100'))
+        self.assertEqual(line.unit_price_untaxed, D('83.33'))
+        self.assertEqual(line.unit_tax, D('0.2'))
+
+        self.assertEqual(line.amount_untaxed, D('75.00'))
+        self.assertEqual(line.amount_tax, D('15.00'))
+        self.assertEqual(line.amount_total, D('90'))
+
+        self.assertEqual(line.amount_discount_percentage_untaxed, D('0.00'))
+        self.assertEqual(line.amount_discount_percentage, D('0.10'))
+        self.assertEqual(line.amount_discount_untaxed, D('0.00'))
+        self.assertEqual(line.amount_discount, D('0.00'))
+
+    def test_compute_sale_order_line_discount_amount_untaxed(self):
+        so = self.registry.Sale.Order.create(
+                     channel="WEBSITE",
+                     code="SO-TEST-000001"
+                     )
+
+        self.assertEqual(so.state, 'draft')
+        product = self.registry.Product.Item.insert(code="TEST", name="test")
+
+        line = self.registry.Sale.Order.Line.create(
+                    order=so,
+                    item=product,
+                    quantity=1,
+                    unit_price=100,
+                    unit_tax=20,
+                    amount_discount_untaxed=10,
+                    )
+
+        self.assertEqual(line.unit_price, D('100'))
+        self.assertEqual(line.unit_price_untaxed, D('83.33'))
+        self.assertEqual(line.unit_tax, D('0.2'))
+
+        self.assertEqual(line.amount_untaxed, D('73.33'))
+        self.assertEqual(line.amount_tax, D('14.67'))
+        self.assertEqual(line.amount_total, D('88.00'))
+
+        self.assertEqual(line.amount_discount_percentage_untaxed, D('0.00'))
+        self.assertEqual(line.amount_discount_percentage, D('0.00'))
+        self.assertEqual(line.amount_discount_untaxed, D('10.00'))
+        self.assertEqual(line.amount_discount, D('0.00'))
+
+    def test_compute_sale_order_line_discount_percent_untaxed(self):
+        so = self.registry.Sale.Order.create(
+                     channel="WEBSITE",
+                     code="SO-TEST-000001"
+                     )
+
+        self.assertEqual(so.state, 'draft')
+        product = self.registry.Product.Item.insert(code="TEST", name="test")
+
+        line = self.registry.Sale.Order.Line.create(
+                    order=so,
+                    item=product,
+                    quantity=1,
+                    unit_price_untaxed=100,
+                    unit_tax=20,
+                    amount_discount_percentage_untaxed=0.1,
+                    )
+
+        self.assertEqual(line.unit_price, D('120'))
+        self.assertEqual(line.unit_price_untaxed, D('100'))
+        self.assertEqual(line.unit_tax, D('0.2'))
+
+        self.assertEqual(line.amount_untaxed, D('90.00'))
+        self.assertEqual(line.amount_tax, D('18.00'))
+        self.assertEqual(line.amount_total, D('108'))
+
+        self.assertEqual(line.amount_discount_percentage_untaxed, D('0.10'))
+        self.assertEqual(line.amount_discount_percentage, D('0.00'))
+        self.assertEqual(line.amount_discount_untaxed, D('0.00'))
+        self.assertEqual(line.amount_discount, D('0.00'))

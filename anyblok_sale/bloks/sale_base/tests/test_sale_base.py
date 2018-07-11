@@ -97,7 +97,8 @@ class TestSaleBase(BlokTestCase):
         self.assertEqual(price.tax.amount, D(0))
         self.assertEqual(price.currency, 'EUR')
 
-        discount = compute_discount(price=price, discount_amount=9.99)
+        discount = compute_discount(price=price, discount_amount=9.99,
+                                    from_gross=False)
         self.assertEqual(discount.net.amount, D('90.01'))
         self.assertEqual(discount.gross.amount, D('90.01'))
         self.assertEqual(discount.tax.amount, D(0))
@@ -110,7 +111,9 @@ class TestSaleBase(BlokTestCase):
         self.assertEqual(price.tax.amount, D(0))
         self.assertEqual(price.currency, 'EUR')
 
-        discount = compute_discount(price=price, discount_percent=10)
+        discount = compute_discount(price=price,
+                                    discount_percent=0.1,
+                                    from_gross=False)
         self.assertEqual(discount.net.amount, D('90'))
         self.assertEqual(discount.gross.amount, D('90'))
         self.assertEqual(discount.tax.amount, D(0))
@@ -125,8 +128,10 @@ class TestSaleBase(BlokTestCase):
 
         discount = compute_discount(price=price,
                                     discount_amount=9.99,
-                                    discount_percent=10)
-        # for now only discount_amount is applied
+                                    discount_percent=0.1,
+                                    from_gross=False)
+        # for now only discount_amount is applied if both discount_amount and
+        # discount_percent are set
         self.assertEqual(discount.net.amount, D('90.01'))
         self.assertEqual(discount.gross.amount, D('90.01'))
         self.assertEqual(discount.tax.amount, D(0))
@@ -140,37 +145,45 @@ class TestSaleBase(BlokTestCase):
         with self.assertRaises(Exception) as ctx:
             compute_discount(price=price, discount_percent=-10)
         self.assertEqual(str(ctx.exception),
-                         "Discount percent must be a value between 0 and 100")
+                         "Discount percent must be a value between 0 and 1")
 
         with self.assertRaises(Exception) as ctx:
             compute_discount(price=price, discount_percent=200)
         self.assertEqual(str(ctx.exception),
-                         "Discount percent must be a value between 0 and 100")
+                         "Discount percent must be a value between 0 and 1")
 
     def test_compute_price_from_net_fixed_discount(self):
-        price = compute_price(net=83.33, tax=0.2, keep_gross=False)
-        self.assertEqual(price.net.amount, D('83.33'))
-        self.assertEqual(price.gross.amount, D('100'))
-        self.assertEqual(price.tax.amount, D('16.67'))
+        price = compute_price(net=100, tax=0.2, keep_gross=False)
+        self.assertEqual(price.net.amount, D('100'))
+        self.assertEqual(price.gross.amount, D('120'))
+        self.assertEqual(price.tax.amount, D('20'))
         self.assertEqual(price.currency, 'EUR')
 
-        discount = compute_discount(price=price, discount_amount=9.99)
-        self.assertEqual(discount.net.amount, D('73.34'))
-        self.assertEqual(discount.gross.amount, D('90.01'))
-        self.assertEqual(discount.tax.amount, D('16.67'))
+        discount = compute_discount(price=price,
+                                    tax=0.2,
+                                    discount_amount=10,
+                                    from_gross=False)
+
+        self.assertEqual(discount.net.amount, D('90'))
+        self.assertEqual(discount.gross.amount, D('108'))
+        self.assertEqual(discount.tax.amount, D('18'))
         self.assertEqual(discount.currency, 'EUR')
 
     def test_compute_price_from_net_percentage_discount(self):
-        price = compute_price(net=83.33, tax=0.2, keep_gross=False)
-        self.assertEqual(price.net.amount, D('83.33'))
-        self.assertEqual(price.gross.amount, D('100'))
-        self.assertEqual(price.tax.amount, D('16.67'))
+        price = compute_price(net=100, tax=0.2, keep_gross=False)
+        self.assertEqual(price.net.amount, D('100'))
+        self.assertEqual(price.gross.amount, D('120'))
+        self.assertEqual(price.tax.amount, D('20'))
         self.assertEqual(price.currency, 'EUR')
 
-        discount = compute_discount(price=price, discount_percent=10)
-        self.assertEqual(discount.net.amount, D('73.33'))
-        self.assertEqual(discount.gross.amount, D('90'))
-        self.assertEqual(discount.tax.amount, D('16.67'))
+        discount = compute_discount(price=price,
+                                    tax=0.2,
+                                    discount_percent=0.1,
+                                    from_gross=False
+                                    )
+        self.assertEqual(discount.net.amount, D('90'))
+        self.assertEqual(discount.gross.amount, D('108'))
+        self.assertEqual(discount.tax.amount, D('18'))
         self.assertEqual(discount.currency, 'EUR')
 
     def test_compute_price_from_net_fixed_and_percentage_discount(self):
@@ -181,10 +194,66 @@ class TestSaleBase(BlokTestCase):
         self.assertEqual(price.currency, 'EUR')
 
         discount = compute_discount(price=price,
+                                    tax=0.2,
                                     discount_amount=9.99,
-                                    discount_percent=10)
-        # for now only discount_amount is applied
+                                    discount_percent=0.1,
+                                    from_gross=False)
+        # for now only discount_amount is applied if both discount_amount and
+        # discount_percent are set
         self.assertEqual(discount.net.amount, D('73.34'))
-        self.assertEqual(discount.gross.amount, D('90.01'))
-        self.assertEqual(discount.tax.amount, D('16.67'))
+        self.assertEqual(discount.gross.amount, D('88.01'))
+        self.assertEqual(discount.tax.amount, D('14.67'))
+        self.assertEqual(discount.currency, 'EUR')
+
+    def test_compute_price_from_gross_fixed_discount(self):
+        price = compute_price(gross=120, tax=0.2, keep_gross=True)
+        self.assertEqual(price.net.amount, D('100'))
+        self.assertEqual(price.gross.amount, D('120'))
+        self.assertEqual(price.tax.amount, D('20'))
+        self.assertEqual(price.currency, 'EUR')
+
+        discount = compute_discount(price=price,
+                                    tax=0.2,
+                                    discount_amount=10,
+                                    from_gross=True)
+
+        self.assertEqual(discount.net.amount, D('91.67'))
+        self.assertEqual(discount.gross.amount, D('110'))
+        self.assertEqual(discount.tax.amount, D('18.33'))
+        self.assertEqual(discount.currency, 'EUR')
+
+    def test_compute_price_from_gross_percentage_discount(self):
+        price = compute_price(gross=120, tax=0.2, keep_gross=True)
+        self.assertEqual(price.net.amount, D('100'))
+        self.assertEqual(price.gross.amount, D('120'))
+        self.assertEqual(price.tax.amount, D('20'))
+        self.assertEqual(price.currency, 'EUR')
+
+        discount = compute_discount(price=price,
+                                    tax=0.2,
+                                    discount_percent=0.1,
+                                    from_gross=True
+                                    )
+        self.assertEqual(discount.net.amount, D('90'))
+        self.assertEqual(discount.gross.amount, D('108'))
+        self.assertEqual(discount.tax.amount, D('18'))
+        self.assertEqual(discount.currency, 'EUR')
+
+    def test_compute_price_from_gross_fixed_and_percentage_discount(self):
+        price = compute_price(gross=120, tax=0.2, keep_gross=True)
+        self.assertEqual(price.net.amount, D('100'))
+        self.assertEqual(price.gross.amount, D('120'))
+        self.assertEqual(price.tax.amount, D('20'))
+        self.assertEqual(price.currency, 'EUR')
+
+        discount = compute_discount(price=price,
+                                    tax=0.2,
+                                    discount_amount=10,
+                                    discount_percent=0.1,
+                                    from_gross=True)
+        # for now only discount_amount is applied if both discount_amount and
+        # discount_percent are set
+        self.assertEqual(discount.net.amount, D('91.67'))
+        self.assertEqual(discount.gross.amount, D('110'))
+        self.assertEqual(discount.tax.amount, D('18.33'))
         self.assertEqual(discount.currency, 'EUR')

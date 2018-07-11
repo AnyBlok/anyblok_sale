@@ -32,28 +32,58 @@ def compute_price(net=0, gross=0, tax=0, currency='EUR', keep_gross=True):
             gross = net
     tax = compute_tax(tax)
     return flat_tax(TaxedMoney(
-                        Money(net, currency).quantize(),
-                        Money(gross, currency).quantize()),
+                        Money(D(net), currency).quantize(),
+                        Money(D(gross), currency).quantize()),
                     D(tax),
                     keep_gross=keep_gross)
 
 
-def compute_discount(price=None, discount_amount=0, discount_percent=0):
+def compute_discount(price=None, tax=0, discount_amount=0, discount_percent=0,
+                     from_gross=True):
     if price is None:
         return None
+
+    if discount_amount == 0 and discount_percent == 0:
+        return price
+
     if discount_amount != 0:
         if discount_amount < 0:
             raise Exception("Discount amount must be a positive value")
-        return fixed_discount(price,
-                              discount=Money(discount_amount,
-                                             currency=price.currency)
-                              ).quantize()
+
+        discount = fixed_discount(price,
+                                  discount=Money(D(discount_amount),
+                                                 currency=price.currency)
+                                  ).quantize()
+        if from_gross:
+            return compute_price(gross=discount.gross.amount,
+                                 tax=compute_tax(tax),
+                                 currency=price.currency,
+                                 keep_gross=True)
+        else:
+            return compute_price(net=discount.net.amount,
+                                 tax=compute_tax(tax),
+                                 currency=price.currency,
+                                 keep_gross=False)
+
     if discount_percent != 0:
-        if discount_percent < 0 or discount_percent > 100:
+        if discount_percent < 0 or discount_percent > 1:
             raise Exception(
-                    "Discount percent must be a value between 0 and 100")
-        return percentage_discount(price,
-                                   percentage=discount_percent).quantize()
+                    "Discount percent must be a value between 0 and 1")
+
+        discount = percentage_discount(price,
+                                       percentage=D(discount_percent * 100),
+                                       from_gross=from_gross).quantize()
+
+        if from_gross:
+            return compute_price(gross=discount.gross.amount,
+                                 tax=compute_tax(tax),
+                                 currency=price.currency,
+                                 keep_gross=True)
+        else:
+            return compute_price(net=discount.net.amount,
+                                 tax=compute_tax(tax),
+                                 currency=price.currency,
+                                 keep_gross=False)
 
 
 @Declarations.register(Declarations.Model)

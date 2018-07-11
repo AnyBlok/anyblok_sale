@@ -52,7 +52,7 @@ class TestPriceListModel(BlokTestCase):
                         unit_tax=20,
                         unit_price=69.96
                         )
-        self.assertTrue(str(ctx.exception.orig).startswith('duplicate key'))
+        self.assertEqual(type(ctx.exception), IntegrityError)
 
     def test_price_list_item_compute_price_untaxed_from_unit_price(self):
         pricelist = self.registry.Sale.PriceList.create(code="DEFAULT",

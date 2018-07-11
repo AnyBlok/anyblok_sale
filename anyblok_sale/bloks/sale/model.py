@@ -18,7 +18,10 @@ from anyblok_postgres.column import Jsonb
 from anyblok_mixins.workflow.marshmallow import SchemaValidator
 from anyblok_marshmallow import fields, ModelSchema
 
-from anyblok_sale.bloks.sale_base.base import compute_tax, compute_price
+from anyblok_sale.bloks.sale_base.base import (
+    compute_tax,
+    compute_price,
+    compute_discount)
 
 
 Mixin = Declarations.Mixin
@@ -174,6 +177,15 @@ class Line(Mixin.UuidColumn, Mixin.TrackModel):
     amount_tax = Decimal(label="Tax amount", default=D(0))
     amount_total = Decimal(label="Total", default=D(0))
 
+    amount_discount_percentage_untaxed = Decimal(
+            label="Amount discount percentage untaxed",
+            default=D(0))
+    amount_discount_percentage = Decimal(label="Amount discount percentage",
+                                         default=D(0))
+    amount_discount_untaxed = Decimal(label="Amount discount untaxed",
+                                      default=D(0))
+    amount_discount = Decimal(label="Amount discount", default=D(0))
+
     def __str__(self):
         return "{self.uuid} : {self.amount_total}".format(self=self)
 
@@ -257,12 +269,77 @@ class Line(Mixin.UuidColumn, Mixin.TrackModel):
                 self.unit_price = price_list_item.unit_price
                 self.unit_price_untaxed = price_list_item.unit_price_untaxed
                 self.unit_tax = price_list_item.unit_tax
+            else:
+                raise LineException(
+                    """Can not find a price for %r on %r""" % (
+                        self.item, self.order.price_list)
+                    )
 
         # compute total amount
         self.amount_total = D(self.unit_price * self.quantity)
         self.amount_untaxed = D(
                 self.unit_price_untaxed * self.quantity)
         self.amount_tax = self.amount_total - self.amount_untaxed
+
+        # compute total amount after discount
+        if self.amount_discount_untaxed != D('0'):
+            price = compute_price(net=self.amount_untaxed,
+                                  tax=self.unit_tax,
+                                  keep_gross=False)
+            discount = compute_discount(
+                        price=price,
+                        tax=self.unit_tax,
+                        discount_amount=self.amount_discount_untaxed,
+                        from_gross=False)
+
+            self.amount_total = discount.gross.amount
+            self.amount_untaxed = discount.net.amount
+            self.amount_tax = discount.tax.amount
+            return
+
+        if self.amount_discount_percentage_untaxed != D('0'):
+            price = compute_price(net=self.amount_untaxed,
+                                  tax=self.unit_tax,
+                                  keep_gross=False)
+            discount = compute_discount(
+                price=price,
+                tax=self.unit_tax,
+                discount_percent=self.amount_discount_percentage_untaxed,
+                from_gross=False)
+
+            self.amount_total = discount.gross.amount
+            self.amount_untaxed = discount.net.amount
+            self.amount_tax = discount.tax.amount
+            return
+
+        if self.amount_discount != D('0'):
+            price = compute_price(gross=self.amount_total,
+                                  tax=self.unit_tax,
+                                  keep_gross=True)
+            discount = compute_discount(
+                        price=price,
+                        tax=self.unit_tax,
+                        discount_amount=self.amount_discount,
+                        from_gross=True)
+            self.amount_total = discount.gross.amount
+            self.amount_untaxed = discount.net.amount
+            self.amount_tax = discount.tax.amount
+            return
+
+        if self.amount_discount_percentage != D('0'):
+            price = compute_price(gross=self.amount_total,
+                                  tax=self.unit_tax,
+                                  keep_gross=True)
+            discount = compute_discount(
+                        price=price,
+                        tax=self.unit_tax,
+                        discount_percent=self.amount_discount_percentage,
+                        from_gross=True)
+
+            self.amount_total = discount.gross.amount
+            self.amount_untaxed = discount.net.amount
+            self.amount_tax = discount.tax.amount
+            return
 
     @classmethod
     def create(cls, order=None, item=None, **kwargs):
