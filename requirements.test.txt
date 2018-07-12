@@ -1,6 +1,7 @@
 sqlalchemy
 psycopg2-binary
 -e git+https://github.com/AnyBlok/anyblok_product.git#egg=anyblok_product
+-e git+https://github.com/AnyBlok/AnyBlok_Marshmallow.git#egg=anyblok_marshmallow
 -e .
 flake8
 nose
