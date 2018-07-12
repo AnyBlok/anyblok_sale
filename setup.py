@@ -33,6 +33,7 @@ requirements = [
     'anyblok_attachment',
     'anyblok_address',
     'anyblok_product',
+    'prices',
 ]
 
 test_requirements = [
@@ -50,8 +51,10 @@ setup(
     packages=find_packages(),
     entry_points={
         'bloks': [
+            'sale_base=anyblok_sale.bloks.sale_base:SaleBaseBlok',
             'sale=anyblok_sale.bloks.sale:SaleBlok',
             'customer=anyblok_sale.bloks.customer:CustomerBlok',
+            'pricelist=anyblok_sale.bloks.price_list:PriceListBlok',
         ],
     },
     include_package_data=True,

@@ -8,6 +8,7 @@
 # -*- coding: utf-8 -*-
 
 from decimal import Decimal as D
+from marshmallow.validate import Length
 
 from anyblok import Declarations
 from anyblok.column import String, Decimal, Integer
@@ -17,7 +18,10 @@ from anyblok_postgres.column import Jsonb
 from anyblok_mixins.workflow.marshmallow import SchemaValidator
 from anyblok_marshmallow import fields, ModelSchema
 
-from marshmallow.validate import Length
+from anyblok_sale.bloks.sale_base.base import (
+    compute_tax,
+    compute_price,
+    compute_discount)
 
 
 Mixin = Declarations.Mixin
@@ -38,11 +42,6 @@ class OrderBaseSchema(ModelSchema):
         model = "Model.Sale.Order"
 
 
-@Declarations.register(Declarations.Model)
-class Sale:
-    """Namespace for Sale related models"""
-
-
 class LineException(Exception):
     pass
 
@@ -57,29 +56,42 @@ class Order(Mixin.UuidColumn, Mixin.TrackModel, Mixin.WorkFlow):
     def get_schema_definition(cls, **kwargs):
         return cls.SCHEMA(**kwargs)
 
-    WORKFLOW = {
-        'draft': {
-            'default': True,
-            'allowed_to': ['quotation', 'cancelled']
-        },
-        'quotation': {
-            'allowed_to': ['order', 'cancelled'],
-            'validators': SchemaValidator(SCHEMA(
-                exclude=['customer', 'customer_address', 'delivery_address']))
-        },
-        'order': {
-            'validators': SchemaValidator(SCHEMA(
-                exclude=['customer', 'customer_address', 'delivery_address']))
-        },
-        'cancelled': {},
-    }
+    @classmethod
+    def get_workflow_definition(cls):
+
+        return {
+            'draft': {
+                'default': True,
+                'allowed_to': ['quotation', 'cancelled']
+            },
+            'quotation': {
+                'allowed_to': ['order', 'cancelled'],
+                'validators': SchemaValidator(cls.get_schema_definition(
+                    exclude=[
+                        'customer',
+                        'price_list',
+                        'customer_address',
+                        'delivery_address']))
+            },
+            'order': {
+                'validators': SchemaValidator(cls.get_schema_definition(
+                    exclude=[
+                        'customer',
+                        'price_list',
+                        'customer_address',
+                        'delivery_address']))
+            },
+            'cancelled': {},
+        }
 
     code = String(label="Code", nullable=False)
     channel = String(label="Sale Channel", nullable=False)
+    price_list = Many2One(label="Price list",
+                          model=Declarations.Model.Sale.PriceList)
     delivery_method = String(label="Delivery Method")
 
     customer = Many2One(label="Customer",
-                        model=Declarations.Model.Customer,
+                        model=Declarations.Model.Sale.Customer,
                         one2many='sale_orders')
     customer_address = Many2One(label="Customer Address",
                                 model=Declarations.Model.Address)
@@ -103,16 +115,19 @@ class Order(Mixin.UuidColumn, Mixin.TrackModel, Mixin.WorkFlow):
                     self=self)
 
     @classmethod
-    def create(cls, **kwargs):
+    def create(cls, price_list=None, **kwargs):
+        data = kwargs.copy()
         if cls.get_schema_definition:
             sch = cls.get_schema_definition(
                         registry=cls.registry,
                         exclude=['lines', 'customer', 'customer_address',
                                  'delivery_address']
             )
-            data = sch.load(kwargs)
-        else:
-            data = kwargs
+            if price_list:
+                data["price_list"] = price_list.to_primary_keys()
+            data = sch.load(data)
+            data['price_list'] = price_list
+
         return cls.insert(**data)
 
     def compute(self):
@@ -162,6 +177,15 @@ class Line(Mixin.UuidColumn, Mixin.TrackModel):
     amount_tax = Decimal(label="Tax amount", default=D(0))
     amount_total = Decimal(label="Total", default=D(0))
 
+    amount_discount_percentage_untaxed = Decimal(
+            label="Amount discount percentage untaxed",
+            default=D(0))
+    amount_discount_percentage = Decimal(label="Amount discount percentage",
+                                         default=D(0))
+    amount_discount_untaxed = Decimal(label="Amount discount untaxed",
+                                      default=D(0))
+    amount_discount = Decimal(label="Amount discount", default=D(0))
+
     def __str__(self):
         return "{self.uuid} : {self.amount_total}".format(self=self)
 
@@ -206,42 +230,116 @@ class Line(Mixin.UuidColumn, Mixin.TrackModel):
 
         TODO: maybe add configuration options for computation behaviours, for
         example computation based on unit_price or unit_price_untaxed
-
-        TODO: Maybe use 'Prices' module for decimal conversion and currency
-        management
         """
-        self.check_unit_price()
 
-        unit_price_untaxed = D(self.unit_price_untaxed).quantize(D('1.0000'))
-        unit_price = D(self.unit_price).quantize(D('1.0000'))
-
-        if self.unit_tax != D(0):
-            tax = D(D(self.unit_tax / 100).quantize(D('1.0000'))) + 1
-
+        if not self.order.price_list:
+            self.check_unit_price()
             if self.unit_price != D(0) and self.unit_price_untaxed == D(0):
                 # compute unit_price_untaxed based on unit_price
-                self.unit_price_untaxed = D(unit_price / tax).quantize(
-                        D('1.00'))
-                self.unit_price = unit_price
+                price = compute_price(net=self.unit_price,
+                                      gross=self.unit_price,
+                                      tax=compute_tax(self.unit_tax),
+                                      keep_gross=True)
             elif self.unit_price_untaxed != D(0) and self.unit_price == D(0):
                 # compute unit_price based on unit_price_untaxed
-                self.unit_price = D(unit_price_untaxed * tax).quantize(
-                        D('1.00'))
-                self.unit_price_untaxed = unit_price_untaxed
+                price = compute_price(net=self.unit_price_untaxed,
+                                      gross=self.unit_price_untaxed,
+                                      tax=compute_tax(self.unit_tax),
+                                      keep_gross=False)
             elif self.unit_price_untaxed != D(0) and self.unit_price != D(0):
                 # compute unit_price_untaxed based on unit_price
-                self.unit_price_untaxed = D(unit_price / tax).quantize(
-                        D('1.00'))
-                self.unit_price = unit_price
+                price = compute_price(net=self.unit_price,
+                                      gross=self.unit_price,
+                                      tax=compute_tax(self.unit_tax),
+                                      keep_gross=True)
             else:
-                pass
+                raise LineException(
+                    """Can not find a strategy to compute price"""
+                    )
 
-        # compute total
-        self.amount_total = D(self.unit_price * self.quantity).quantize(
-                D('1.00'))
+            self.unit_price_untaxed = price.net.amount
+            self.unit_price = price.gross.amount
+            self.unit_tax = compute_tax(self.unit_tax)
+        else:
+            # compute unit price based on price list
+            price_list_item = self.registry.Sale.PriceList.Item.query(
+                    ).filter_by(price_list=self.order.price_list).filter_by(
+                            item=self.item).one_or_none()
+            if price_list_item:
+                self.unit_price = price_list_item.unit_price
+                self.unit_price_untaxed = price_list_item.unit_price_untaxed
+                self.unit_tax = price_list_item.unit_tax
+            else:
+                raise LineException(
+                    """Can not find a price for %r on %r""" % (
+                        self.item, self.order.price_list)
+                    )
+
+        # compute total amount
+        self.amount_total = D(self.unit_price * self.quantity)
         self.amount_untaxed = D(
-                self.unit_price_untaxed * self.quantity).quantize(D('1.00'))
+                self.unit_price_untaxed * self.quantity)
         self.amount_tax = self.amount_total - self.amount_untaxed
+
+        # compute total amount after discount
+        if self.amount_discount_untaxed != D('0'):
+            price = compute_price(net=self.amount_untaxed,
+                                  tax=self.unit_tax,
+                                  keep_gross=False)
+            discount = compute_discount(
+                        price=price,
+                        tax=self.unit_tax,
+                        discount_amount=self.amount_discount_untaxed,
+                        from_gross=False)
+
+            self.amount_total = discount.gross.amount
+            self.amount_untaxed = discount.net.amount
+            self.amount_tax = discount.tax.amount
+            return
+
+        if self.amount_discount_percentage_untaxed != D('0'):
+            price = compute_price(net=self.amount_untaxed,
+                                  tax=self.unit_tax,
+                                  keep_gross=False)
+            discount = compute_discount(
+                price=price,
+                tax=self.unit_tax,
+                discount_percent=self.amount_discount_percentage_untaxed,
+                from_gross=False)
+
+            self.amount_total = discount.gross.amount
+            self.amount_untaxed = discount.net.amount
+            self.amount_tax = discount.tax.amount
+            return
+
+        if self.amount_discount != D('0'):
+            price = compute_price(gross=self.amount_total,
+                                  tax=self.unit_tax,
+                                  keep_gross=True)
+            discount = compute_discount(
+                        price=price,
+                        tax=self.unit_tax,
+                        discount_amount=self.amount_discount,
+                        from_gross=True)
+            self.amount_total = discount.gross.amount
+            self.amount_untaxed = discount.net.amount
+            self.amount_tax = discount.tax.amount
+            return
+
+        if self.amount_discount_percentage != D('0'):
+            price = compute_price(gross=self.amount_total,
+                                  tax=self.unit_tax,
+                                  keep_gross=True)
+            discount = compute_discount(
+                        price=price,
+                        tax=self.unit_tax,
+                        discount_percent=self.amount_discount_percentage,
+                        from_gross=True)
+
+            self.amount_total = discount.gross.amount
+            self.amount_untaxed = discount.net.amount
+            self.amount_tax = discount.tax.amount
+            return
 
     @classmethod
     def create(cls, order=None, item=None, **kwargs):
@@ -272,6 +370,7 @@ class Line(Mixin.UuidColumn, Mixin.TrackModel):
 
     @classmethod
     def before_update_orm_event(cls, mapper, connection, target):
+
         if cls.get_schema_definition:
             sch = cls.get_schema_definition(
                         registry=cls.registry,
@@ -287,5 +386,4 @@ class Line(Mixin.UuidColumn, Mixin.TrackModel):
                             target.item.code.lower()).get('schema')
                 props_sch = props(context={"registry": cls.registry})
                 props_sch.load(target.properties)
-
         target.compute()

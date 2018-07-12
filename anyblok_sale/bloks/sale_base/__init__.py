@@ -12,19 +12,20 @@ from logging import getLogger
 logger = getLogger(__name__)
 
 
-class CustomerBlok(Blok):
-    """Customer blok
+class SaleBaseBlok(Blok):
+    """SaleBase blok
+    Mainly used to get a `Sale` namespace
     """
     version = "0.1.0"
     author = "Franck BRET"
 
-    required = ['anyblok-core', 'anyblok-mixins', 'sale_base']
+    required = ['anyblok-core']
 
     @classmethod
     def import_declaration_module(cls):
-        from . import model # noqa
+        from . import base # noqa
 
     @classmethod
     def reload_declaration_module(cls, reload):
-        from . import model
-        reload(model)
+        from . import base
+        reload(base)

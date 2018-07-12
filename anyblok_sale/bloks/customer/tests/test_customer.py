@@ -15,13 +15,13 @@ class TestCustomerModel(BlokTestCase):
     """ Test customer model"""
 
     def test_create_customer(self):
-        self.registry.Customer.create(email="johndoe@sensee.com",
-                                      first_name="John",
-                                      last_name="Doe",
-                                      phone="+33602030405")
+        self.registry.Sale.Customer.create(email="johndoe@sensee.com",
+                                           first_name="John",
+                                           last_name="Doe",
+                                           phone="+33602030405")
 
-        self.assertEqual(self.registry.Customer.query().count(), 1)
-        customer = self.registry.Customer.query().first()
+        self.assertEqual(self.registry.Sale.Customer.query().count(), 1)
+        customer = self.registry.Sale.Customer.query().first()
         self.assertEqual(customer.email,
                          "johndoe@sensee.com")
         self.assertEqual(str(customer),
@@ -30,9 +30,9 @@ class TestCustomerModel(BlokTestCase):
     def test_create_customer_fail_required_field(self):
         with self.assertRaises(ValidationError) as ctx:
 
-            self.registry.Customer.create(email="johndoe@sensee.com",
-                                          last_name="Doe",
-                                          phone="+33602030405")
+            self.registry.Sale.Customer.create(email="johndoe@sensee.com",
+                                               last_name="Doe",
+                                               phone="+33602030405")
 
         self.assertTrue('first_name' in ctx.exception.messages.keys())
         self.assertDictEqual(
@@ -42,25 +42,25 @@ class TestCustomerModel(BlokTestCase):
     def test_create_customer_fail_bad_field(self):
         with self.assertRaises(ValidationError) as ctx:
 
-            self.registry.Customer.create(email="johndoe@sensee.com",
-                                          first_name="John",
-                                          last_name="Doe",
-                                          phone="+33602030405",
-                                          unexisting_field="plop")
+            self.registry.Sale.Customer.create(email="johndoe@sensee.com",
+                                               first_name="John",
+                                               last_name="Doe",
+                                               phone="+33602030405",
+                                               unexisting_field="plop")
 
         self.assertTrue('unexisting_field' in ctx.exception.messages.keys())
         self.assertDictEqual(
             dict(unexisting_field=["Unknown fields {'unexisting_field'} "
-                                   "on Model Model.Customer"]),
+                                   "on Model Model.Sale.Customer"]),
             ctx.exception.messages)
 
     def test_create_customer_fail_bad_value(self):
         with self.assertRaises(ValidationError) as ctx:
 
-            self.registry.Customer.create(email="johndoe@sensee.com",
-                                          first_name=1337,
-                                          last_name="Doe",
-                                          phone="+33602030405")
+            self.registry.Sale.Customer.create(email="johndoe@sensee.com",
+                                               first_name=1337,
+                                               last_name="Doe",
+                                               phone="+33602030405")
 
         self.assertDictEqual(
             dict(first_name=['Not a valid string.']),

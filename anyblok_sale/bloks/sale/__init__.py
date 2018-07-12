@@ -19,7 +19,8 @@ class SaleBlok(Blok):
     author = "Franck BRET"
 
     required = ['anyblok-core', 'anyblok-workflow', 'anyblok-mixins',
-                'customer', 'attachment', 'address', 'product_item']
+                'sale_base', 'customer', 'pricelist', 'attachment', 'address',
+                'product_item']
 
     @classmethod
     def import_declaration_module(cls):
