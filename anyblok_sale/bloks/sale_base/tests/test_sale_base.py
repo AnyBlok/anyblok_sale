@@ -19,21 +19,21 @@ class TestSaleBase(BlokTestCase):
 
     def test_compute_tax(self):
         tax = compute_tax(20)
-        self.assertEqual(tax, 0.2)
+        self.assertEqual(tax, D('0.2000'))
         tax = compute_tax(D(20))
-        self.assertEqual(tax, D('0.2'))
+        self.assertEqual(tax, D('0.2000'))
 
         tax = compute_tax(0.2)
-        self.assertEqual(tax, 0.2)
+        self.assertEqual(tax, D('0.2000'))
 
         tax = compute_tax(D(0.2))
-        self.assertEqual(tax, D(0.2))
+        self.assertEqual(tax, D('0.2000'))
 
         tax = compute_tax(0.22)
-        self.assertEqual(tax, 0.22)
+        self.assertEqual(tax, D('0.2200'))
 
         tax = compute_tax(0.222222)
-        self.assertEqual(tax, 0.222222)
+        self.assertEqual(tax, D('0.2222'))
 
     def test_compute_tax_exception(self):
         with self.assertRaises(Exception) as ctx:
