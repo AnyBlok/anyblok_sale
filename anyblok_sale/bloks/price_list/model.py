@@ -10,7 +10,7 @@
 """
 from decimal import Decimal as D
 
-from anyblok_marshmallow import ModelSchema
+from anyblok_marshmallow import SchemaWrapper
 
 from anyblok import Declarations
 from anyblok.column import String, Decimal
@@ -22,16 +22,12 @@ from anyblok_sale.bloks.sale_base.base import compute_tax, compute_price
 Mixin = Declarations.Mixin
 
 
-class PriceListItemSchema(ModelSchema):
-
-    class Meta:
-        model = "Model.Sale.PriceList.Item"
+class PriceListItemSchema(SchemaWrapper):
+    model = "Model.Sale.PriceList.Item"
 
 
-class PriceListSchema(ModelSchema):
-
-    class Meta:
-        model = "Model.Sale.PriceList"
+class PriceListSchema(SchemaWrapper):
+    model = "Model.Sale.PriceList"
 
 
 @Declarations.register(Declarations.Model.Sale)
