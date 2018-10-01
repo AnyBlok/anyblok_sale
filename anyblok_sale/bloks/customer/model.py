@@ -8,7 +8,7 @@
 # -*- coding: utf-8 -*-
 """ Customer model
 """
-from anyblok_marshmallow import ModelSchema
+from anyblok_marshmallow import SchemaWrapper
 
 from anyblok import Declarations
 from anyblok.column import String, PhoneNumber, Email
@@ -16,10 +16,8 @@ from anyblok.column import String, PhoneNumber, Email
 Mixin = Declarations.Mixin
 
 
-class CustomerSchema(ModelSchema):
-
-    class Meta:
-        model = "Model.Sale.Customer"
+class CustomerSchema(SchemaWrapper):
+    model = "Model.Sale.Customer"
 
 
 @Declarations.register(Declarations.Model.Sale)

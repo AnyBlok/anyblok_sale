@@ -50,7 +50,8 @@ class TestCustomerModel(BlokTestCase):
 
         self.assertTrue('unexisting_field' in ctx.exception.messages.keys())
         self.assertDictEqual(
-            dict(unexisting_field=["Unknown fields {'unexisting_field'} "
+            dict(unexisting_field=["Unknown field.",
+                                   "Unknown fields {'unexisting_field'} "
                                    "on Model Model.Sale.Customer"]),
             ctx.exception.messages)
 

@@ -16,7 +16,7 @@ from anyblok.relationship import Many2One
 
 from anyblok_postgres.column import Jsonb
 from anyblok_mixins.workflow.marshmallow import SchemaValidator
-from anyblok_marshmallow import fields, ModelSchema
+from anyblok_marshmallow import fields, SchemaWrapper
 
 from anyblok_sale.bloks.sale_base.base import (
     compute_tax,
@@ -27,19 +27,17 @@ from anyblok_sale.bloks.sale_base.base import (
 Mixin = Declarations.Mixin
 
 
-class OrderLineBaseSchema(ModelSchema):
-
-    class Meta:
-        model = "Model.Sale.Order.Line"
+class OrderLineBaseSchema(SchemaWrapper):
+    model = "Model.Sale.Order.Line"
 
 
-class OrderBaseSchema(ModelSchema):
-    lines = fields.Nested(OrderLineBaseSchema,
-                          validate=[Length(min=1)],
-                          many=True)
+class OrderBaseSchema(SchemaWrapper):
+    model = "Model.Sale.Order"
 
-    class Meta:
-        model = "Model.Sale.Order"
+    class Schema:
+        lines = fields.Nested(OrderLineBaseSchema,
+                              validate=[Length(min=1)],
+                              many=True)
 
 
 class LineException(Exception):

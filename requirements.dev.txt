@@ -1,4 +1,5 @@
 -r requirements.test.txt
+-e git+https://github.com/AnyBlok/AnyBlok_Marshmallow.git#egg=anyblok_marshmallow
 ipdb
 ipdbplugin
 ipython
