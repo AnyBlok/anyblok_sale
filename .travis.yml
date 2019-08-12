@@ -4,19 +4,17 @@ addons:
     postgresql: "9.6"
 
 python:
-  - "3.3"
-  - "3.4"
   - "3.5"
   - "3.6"
-  - "3.6-dev" # 3.6 development branch
+  - "3.7"
   - "3.7-dev" # 3.7 development branch
+  - "3.8-dev" # 3.8 development branch
   - "nightly"
 
 matrix:
   allow_failures:
-    - python: "3.3"
-    - python: "3.6-dev"
     - python: "3.7-dev"
+    - python: "3.8-dev"
     - python: "nightly"
 
 virtualenv:
