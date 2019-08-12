@@ -32,6 +32,11 @@ class PriceListSchema(SchemaWrapper):
 
 @Declarations.register(Declarations.Model.Sale)
 class PriceList(Mixin.UuidColumn, Mixin.TrackModel):
+    SCHEMA = PriceListSchema
+
+    @classmethod
+    def get_schema_definition(cls, **kwargs):
+        return cls.SCHEMA(**kwargs)
 
     code = String(label="Code", nullable=False)
     name = String(label="Name", nullable=False)
@@ -45,13 +50,20 @@ class PriceList(Mixin.UuidColumn, Mixin.TrackModel):
 
     @classmethod
     def create(cls, **kwargs):
-        sch = PriceListSchema(registry=cls.registry)
-        data = sch.load(kwargs)
+        data = kwargs.copy()
+        if cls.get_schema_definition:
+            sch = cls.get_schema_definition(registry=cls.registry)
+            data = sch.load(kwargs)
         return cls.insert(**data)
 
 
 @Declarations.register(Declarations.Model.Sale.PriceList)
 class Item(Mixin.UuidColumn, Mixin.TrackModel):
+    SCHEMA = PriceListItemSchema
+
+    @classmethod
+    def get_schema_definition(cls, **kwargs):
+        return cls.SCHEMA(**kwargs)
 
     price_list = Many2One(label="Pricelist",
                           model=Declarations.Model.Sale.PriceList,
@@ -76,8 +88,10 @@ class Item(Mixin.UuidColumn, Mixin.TrackModel):
 
     @classmethod
     def create(cls, keep_gross=True, **kwargs):
-        sch = PriceListItemSchema(registry=cls.registry)
-        data = sch.load(kwargs)
+        data = kwargs.copy()
+        if cls.get_schema_definition:
+            sch = cls.get_schema_definition(registry=cls.registry)
+            data = sch.load(kwargs)
         net = data.get('unit_price_untaxed') or D(0)
         gross = data.get('unit_price') or D(0)
         tax = data.get('unit_tax') or D(0)

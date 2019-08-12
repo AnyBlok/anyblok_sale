@@ -10,8 +10,11 @@
 CHANGELOG
 =========
 
-0.1.0
-------
+0.1.1 (not released)
+--------------------
+
+0.1.0 (2018-08-12)
+------------------
 
 * `Sale.Order` and `Sale.Order.Line` namespace and models
 * Basic `state` based workflow ('draft', 'quotation', 'order', 'cancelled')
