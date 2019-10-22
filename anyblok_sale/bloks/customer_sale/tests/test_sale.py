@@ -8,11 +8,6 @@
 # -*- coding: utf-8 -*-
 
 from anyblok.tests.testcase import BlokTestCase
-from anyblok_mixins.workflow.exceptions import WorkFlowException
-
-from decimal import Decimal as D
-
-from marshmallow.exceptions import ValidationError
 
 
 class TestSaleOrderModel(BlokTestCase):

@@ -15,7 +15,6 @@ from anyblok_marshmallow import fields, SchemaWrapper
 
 from anyblok_sale.bloks.sale.model import (
         OrderLineBaseSchema,
-        Order as SaleOrder
 )
 
 from marshmallow.validate import Length
