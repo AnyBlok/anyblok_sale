@@ -11,9 +11,26 @@ from anyblok import Declarations
 from anyblok.relationship import Many2One
 
 from anyblok_mixins.workflow.marshmallow import SchemaValidator
+from anyblok_marshmallow import fields, SchemaWrapper
+
+from anyblok_sale.bloks.sale.model import (
+        OrderLineBaseSchema,
+        Order as SaleOrder
+)
+
+from marshmallow.validate import Length
 
 
 Mixin = Declarations.Mixin
+
+
+class OrderBaseSchema(SchemaWrapper):
+    model = "Model.Sale.Order"
+
+    class Schema:
+        lines = fields.Nested(OrderLineBaseSchema,
+                              validate=[Length(min=1)],
+                              many=True)
 
 
 @Declarations.register(Declarations.Model.Sale)
@@ -22,6 +39,12 @@ class Order:
     """Overrides Sale.Order model in order to add references to customers from
        blok customer from anyblok_sale
     """
+
+    SCHEMA = OrderBaseSchema
+
+    @classmethod
+    def get_schema_definition(cls, **kwargs):
+        return cls.SCHEMA(**kwargs)
 
     @classmethod
     def get_workflow_definition(cls):

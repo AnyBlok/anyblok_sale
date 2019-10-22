@@ -31,18 +31,21 @@ class TestSaleOrderModel(BlokTestCase):
                 first_name=customer.first_name, last_name=customer.last_name,
                 street1="1 Esplanade de la défense",
                 street2="Grande Arche de la Défense", street3="Paroi Nord",
-                zipcode=92800, city="Puteaux", country="FRA",
+                zip_code=92800, city="Puteaux", country="FRA",
                 state="Ile de France"
                 )
 
         so = self.registry.Sale.Order.create(
                                 channel="WEBSITE",
                                 code="SO-TEST-000001",
-                                customer=customer,
-                                customer_address=address,
-                                delivery_address=address
                             )
         self.assertEqual(so.state, 'draft')
+
+        so.customer = customer
         self.assertEqual(so.customer, customer)
+
+        so.customer_address = address
         self.assertEqual(so.customer_address, address)
+
+        so.delivery_address = address
         self.assertEqual(so.delivery_address, address)
