@@ -54,6 +54,7 @@ setup(
             'sale_base=anyblok_sale.bloks.sale_base:SaleBaseBlok',
             'sale=anyblok_sale.bloks.sale:SaleBlok',
             'customer=anyblok_sale.bloks.customer:CustomerBlok',
+            'customer_sale=anyblok_sale.bloks.customer_sale:CustomerSaleBlok',
             'pricelist=anyblok_sale.bloks.price_list:PriceListBlok',
         ],
     },
