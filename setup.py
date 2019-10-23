@@ -30,6 +30,7 @@ requirements = [
     'anyblok',
     'anyblok_mixins',
     'anyblok_marshmallow',
+    'marshmallow-sqlalchemy<=0.17.0',
     'anyblok_attachment',
     'anyblok_address',
     'anyblok_product',
