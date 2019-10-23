@@ -66,18 +66,12 @@ class Order(Mixin.UuidColumn, Mixin.TrackModel, Mixin.WorkFlow):
                 'allowed_to': ['order', 'cancelled'],
                 'validators': SchemaValidator(cls.get_schema_definition(
                     exclude=[
-                        'customer',
-                        'price_list',
-                        'customer_address',
-                        'delivery_address']))
+                        'price_list']))
             },
             'order': {
                 'validators': SchemaValidator(cls.get_schema_definition(
                     exclude=[
-                        'customer',
-                        'price_list',
-                        'customer_address',
-                        'delivery_address']))
+                        'price_list']))
             },
             'cancelled': {},
         }
@@ -87,14 +81,6 @@ class Order(Mixin.UuidColumn, Mixin.TrackModel, Mixin.WorkFlow):
     price_list = Many2One(label="Price list",
                           model=Declarations.Model.Sale.PriceList)
     delivery_method = String(label="Delivery Method")
-
-    customer = Many2One(label="Customer",
-                        model=Declarations.Model.Sale.Customer,
-                        one2many='sale_orders')
-    customer_address = Many2One(label="Customer Address",
-                                model=Declarations.Model.Address)
-    delivery_address = Many2One(label="Delivery Address",
-                                model=Declarations.Model.Address)
 
     amount_untaxed = Decimal(label="Amount Untaxed", default=D(0))
     amount_tax = Decimal(label="Tax amount", default=D(0))
@@ -118,8 +104,7 @@ class Order(Mixin.UuidColumn, Mixin.TrackModel, Mixin.WorkFlow):
         if cls.get_schema_definition:
             sch = cls.get_schema_definition(
                         registry=cls.registry,
-                        exclude=['lines', 'customer', 'customer_address',
-                                 'delivery_address']
+                        exclude=['lines']
             )
             if price_list:
                 data["price_list"] = price_list.to_primary_keys()
